@@ -28,15 +28,45 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const [authorUserId, setAuthorUserId] = useState("");
   const [assignedUserId, setAssignedUserId] = useState("");
   const [projectId, setProjectId] = useState("");
-
   // Set author user ID to current user when available
   useEffect(() => {
     if (currentUser?.userDetails?.userId) {
       setAuthorUserId(currentUser.userDetails.userId.toString());
     }
   }, [currentUser]);
+
+  // Reset form when modal is opened/closed
+  useEffect(() => {
+    if (!isOpen) {
+      // Only reset fields that the user manually enters
+      setTitle("");
+      setDescription("");
+      setStatus(Status.ToDo);
+      setPriority(Priority.Backlog);
+      setTags("");
+      setStartDate("");
+      setDueDate("");
+      setAssignedUserId("");
+      setProjectId("");
+    }
+  }, [isOpen]);
   const handleSubmit = async () => {
-    if (!title || !authorUserId || !(id !== null || projectId)) return;
+    // Convert id to appropriate type for validation
+    const parsedId = typeof id === "string" ? id : id;
+
+    if (
+      !title ||
+      !authorUserId ||
+      !(parsedId !== null || projectId.trim() !== "")
+    ) {
+      console.log("Form validation failed:", {
+        title,
+        authorUserId,
+        id: parsedId,
+        projectId,
+      });
+      return;
+    }
 
     try {
       // Only format dates if they have been provided
@@ -47,7 +77,6 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
       const formattedDueDate = dueDate
         ? formatISO(new Date(dueDate))
         : undefined;
-
       await createTask({
         title,
         description,
@@ -58,7 +87,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         dueDate: formattedDueDate,
         authorUserId: parseInt(authorUserId),
         assignedUserId: assignedUserId ? parseInt(assignedUserId) : undefined,
-        projectId: id !== null ? Number(id) : Number(projectId),
+        projectId: id !== null ? parseInt(id as string) : parseInt(projectId),
       });
 
       // Close modal and reset form on success
@@ -70,7 +99,18 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
     }
   };
   const isFormValid = () => {
-    return title && authorUserId && (id !== null || projectId);
+    // Convert id to number if it's a string
+    const parsedId = typeof id === "string" ? id : id;
+    const valid =
+      title && authorUserId && (parsedId !== null || projectId.trim() !== "");
+    console.log("Form validation:", {
+      title,
+      authorUserId,
+      id: parsedId,
+      projectId,
+      valid,
+    });
+    return valid;
   };
 
   const selectStyles =
@@ -136,20 +176,26 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
           placeholder="Tags (comma separated)"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
-        />
+        />{" "}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-2">
-          <input
-            type="date"
-            className={inputStyles}
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <input
-            type="date"
-            className={inputStyles}
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
+          <div>
+            <label className="mb-1 block text-sm font-medium">Start Date</label>
+            <input
+              type="date"
+              className={inputStyles}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Due Date</label>
+            <input
+              type="date"
+              className={inputStyles}
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
         </div>{" "}
         <input
           type="text"
