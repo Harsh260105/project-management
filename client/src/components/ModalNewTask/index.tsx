@@ -16,7 +16,13 @@ type Props = {
 
 const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const [createTask, { isLoading }] = useCreateTaskMutation();
-  const { data: currentUser } = useGetAuthUserQuery({});
+  const {
+    data: currentUser,
+    isLoading: isUserLoading,
+    error: userError,
+  } = useGetAuthUserQuery({});
+
+  console.log("Current user data:", currentUser);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -28,17 +34,42 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const [authorUserId, setAuthorUserId] = useState("");
   const [assignedUserId, setAssignedUserId] = useState("");
   const [projectId, setProjectId] = useState("");
+
   // Set author user ID to current user when available
   useEffect(() => {
     if (currentUser?.userDetails?.userId) {
+      console.log(
+        "Setting author user ID to:",
+        currentUser.userDetails.userId.toString(),
+      );
       setAuthorUserId(currentUser.userDetails.userId.toString());
     }
   }, [currentUser]);
 
   // Reset form when modal is opened/closed
   useEffect(() => {
-    if (!isOpen) {
-      // Only reset fields that the user manually enters
+    if (isOpen) {
+      // Initialize with defaults when opening
+      setTitle("");
+      setDescription("");
+      setStatus(Status.ToDo);
+      setPriority(Priority.Backlog);
+      setTags("");
+      setStartDate("");
+      setDueDate("");
+      setAssignedUserId("");
+
+      // Only reset projectId if we don't have an id prop
+      if (id === null) {
+        setProjectId("");
+      }
+
+      // Make sure author ID is set from currentUser
+      if (currentUser?.userDetails?.userId) {
+        setAuthorUserId(currentUser.userDetails.userId.toString());
+      }
+    } else {
+      // Reset everything when closing
       setTitle("");
       setDescription("");
       setStatus(Status.ToDo);
@@ -49,34 +80,79 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
       setAssignedUserId("");
       setProjectId("");
     }
-  }, [isOpen]);
+  }, [isOpen, currentUser, id]);
   const handleSubmit = async () => {
-    // Convert id to appropriate type for validation
-    const parsedId = typeof id === "string" ? id : id;
-
-    if (
-      !title ||
-      !authorUserId ||
-      !(parsedId !== null || projectId.trim() !== "")
-    ) {
-      console.log("Form validation failed:", {
-        title,
-        authorUserId,
-        id: parsedId,
-        projectId,
-      });
+    // Check if the form is valid
+    if (!isFormValid()) {
+      console.log("Form validation failed on submit");
       return;
     }
 
     try {
       // Only format dates if they have been provided
-      const formattedStartDate = startDate
-        ? formatISO(new Date(startDate))
-        : undefined;
+      const formattedStartDate =
+        startDate && startDate.trim() !== ""
+          ? formatISO(new Date(startDate))
+          : undefined;
 
-      const formattedDueDate = dueDate
-        ? formatISO(new Date(dueDate))
-        : undefined;
+      const formattedDueDate =
+        dueDate && dueDate.trim() !== ""
+          ? formatISO(new Date(dueDate))
+          : undefined;
+
+      // Safely handle the projectId - use id prop if available, otherwise use the input field
+      let finalProjectId;
+      try {
+        finalProjectId =
+          id !== null ? parseInt(id as string) : parseInt(projectId);
+
+        if (isNaN(finalProjectId)) {
+          throw new Error("Invalid Project ID");
+        }
+      } catch (err) {
+        console.error("Error parsing project ID:", err);
+        alert("Invalid Project ID. Please enter a valid number.");
+        return;
+      }
+
+      // Safely parse author ID
+      let finalAuthorUserId;
+      try {
+        // If we have a current user ID, use that; otherwise use the manually entered one
+        const authorIdToUse =
+          authorUserId || currentUser?.userDetails?.userId?.toString() || "";
+
+        if (!authorIdToUse) {
+          throw new Error("No Author User ID available");
+        }
+
+        finalAuthorUserId = parseInt(authorIdToUse);
+        if (isNaN(finalAuthorUserId)) {
+          throw new Error("Invalid Author User ID");
+        }
+      } catch (err) {
+        console.error("Error parsing author user ID:", err);
+        alert("Invalid or missing Author User ID. Please try again.");
+        return;
+      }
+
+      // Safely parse assigned user ID if provided
+      let finalAssignedUserId = undefined;
+      if (assignedUserId.trim() !== "") {
+        try {
+          finalAssignedUserId = parseInt(assignedUserId);
+          if (isNaN(finalAssignedUserId)) {
+            throw new Error("Invalid Assigned User ID");
+          }
+        } catch (err) {
+          console.error("Error parsing assigned user ID:", err);
+          alert(
+            "Invalid Assigned User ID. Please enter a valid number or leave empty.",
+          );
+          return;
+        }
+      }
+
       await createTask({
         title,
         description,
@@ -85,9 +161,9 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         tags,
         startDate: formattedStartDate,
         dueDate: formattedDueDate,
-        authorUserId: parseInt(authorUserId),
-        assignedUserId: assignedUserId ? parseInt(assignedUserId) : undefined,
-        projectId: id !== null ? parseInt(id as string) : parseInt(projectId),
+        authorUserId: finalAuthorUserId,
+        assignedUserId: finalAssignedUserId,
+        projectId: finalProjectId,
       });
 
       // Close modal and reset form on success
@@ -99,17 +175,30 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
     }
   };
   const isFormValid = () => {
-    // Convert id to number if it's a string
-    const parsedId = typeof id === "string" ? id : id;
-    const valid =
-      title && authorUserId && (parsedId !== null || projectId.trim() !== "");
+    // The check should determine if we have a project ID from either the id prop or the projectId state
+    const hasValidTitle = title.trim() !== "";
+
+    // For author ID, we need to handle the case where it might still be loading
+    const hasValidAuthor = authorUserId.trim() !== "";
+
+    // Check if either we have an id prop or the user entered a projectId
+    const hasValidProjectId = id !== null || projectId.trim() !== "";
+
+    const valid = hasValidTitle && hasValidAuthor && hasValidProjectId;
+
     console.log("Form validation:", {
       title,
       authorUserId,
-      id: parsedId,
+      isUserLoading,
+      userError,
+      id,
       projectId,
+      hasValidTitle,
+      hasValidAuthor,
+      hasValidProjectId,
       valid,
     });
+
     return valid;
   };
 
@@ -128,12 +217,40 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
           handleSubmit();
         }}
       >
+        {/* User ID status indicator for debugging */}
+        <div className="mb-2 rounded bg-gray-100 p-2 text-xs dark:bg-dark-secondary">
+          <p>
+            User ID Status:{" "}
+            {isUserLoading
+              ? "Loading..."
+              : userError
+                ? "Error"
+                : currentUser?.userDetails?.userId
+                  ? "Loaded"
+                  : "Not Found"}
+          </p>
+          {userError && (
+            <p className="text-red-500">
+              Error: {
+                'message' in userError 
+                  ? userError.message 
+                  : 'status' in userError 
+                    ? `${userError.status}: ${JSON.stringify(userError.data)}` 
+                    : "Unknown error"
+              }
+            </p>
+          )}
+          {currentUser?.userDetails?.userId && (
+            <p>User ID: {currentUser.userDetails.userId}</p>
+          )}
+        </div>
         <input
           type="text"
           className={inputStyles}
-          placeholder="Title"
+          placeholder="Title (required)"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          required
         />
         <textarea
           className={inputStyles}
@@ -168,7 +285,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
             <option value={Priority.Medium}>Medium</option>
             <option value={Priority.Low}>Low</option>
             <option value={Priority.Backlog}>Backlog</option>
-          </select>
+          </select>{" "}
         </div>
         <input
           type="text"
@@ -176,7 +293,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
           placeholder="Tags (comma separated)"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
-        />{" "}
+        />
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-2">
           <div>
             <label className="mb-1 block text-sm font-medium">Start Date</label>
@@ -197,28 +314,66 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
             />
           </div>
         </div>{" "}
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            Author User ID {isUserLoading ? "(loading...)" : ""}
+          </label>
+          <input
+            type="number"
+            className={inputStyles}
+            placeholder="Author User ID (auto-filled or enter manually)"
+            value={authorUserId}
+            onChange={(e) => {
+              // Allow manual entry of author ID
+              const value = e.target.value;
+              if (value === "" || /^\d+$/.test(value)) {
+                setAuthorUserId(value);
+              }
+            }}
+            min="1"
+            required
+          />
+          {userError && (
+            <p className="mt-1 text-sm text-red-500">
+              Error loading user: {
+                'message' in userError 
+                  ? userError.message 
+                  : 'status' in userError 
+                    ? `${userError.status}: ${JSON.stringify(userError.data)}` 
+                    : "Unknown error"
+              }. Please enter your user ID manually.
+            </p>
+          )}
+        </div>{" "}
         <input
-          type="text"
-          className={inputStyles}
-          placeholder="Author User ID (auto-filled)"
-          value={authorUserId}
-          readOnly
-          disabled
-        />
-        <input
-          type="text"
+          type="number"
           className={inputStyles}
           placeholder="Assigned User ID (optional)"
           value={assignedUserId}
-          onChange={(e) => setAssignedUserId(e.target.value)}
+          onChange={(e) => {
+            // Ensure only valid numbers are entered
+            const value = e.target.value;
+            if (value === "" || /^\d+$/.test(value)) {
+              setAssignedUserId(value);
+            }
+          }}
+          min="1"
         />
         {id === null && (
           <input
-            type="text"
+            type="number"
             className={inputStyles}
-            placeholder="ProjectId"
+            placeholder="ProjectId (required)"
             value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
+            onChange={(e) => {
+              // Ensure only valid numbers are entered
+              const value = e.target.value;
+              if (value === "" || /^\d+$/.test(value)) {
+                setProjectId(value);
+              }
+            }}
+            min="1"
+            required
           />
         )}
         <button
