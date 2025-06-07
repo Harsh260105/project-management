@@ -42,7 +42,12 @@ export const createTask = async (
     authorUserId,
     assignedUserId,
   } = req.body;
+
   try {
+    // Parse dates if they're provided as strings
+    const parsedStartDate = startDate ? new Date(startDate) : null;
+    const parsedDueDate = dueDate ? new Date(dueDate) : null;
+
     const newTask = await prisma.task.create({
       data: {
         title,
@@ -50,16 +55,17 @@ export const createTask = async (
         status,
         priority,
         tags,
-        startDate,
-        dueDate,
-        points,
-        projectId,
-        authorUserId,
-        assignedUserId,
+        startDate: parsedStartDate,
+        dueDate: parsedDueDate,
+        points: points ? Number(points) : null,
+        projectId: Number(projectId),
+        authorUserId: Number(authorUserId),
+        assignedUserId: assignedUserId ? Number(assignedUserId) : null,
       },
     });
     res.status(201).json(newTask);
   } catch (error: any) {
+    console.error("Task creation error:", error);
     res
       .status(500)
       .json({ message: `Error creating a task: ${error.message}` });
