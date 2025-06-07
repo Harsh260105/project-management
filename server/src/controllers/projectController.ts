@@ -22,17 +22,22 @@ export const createProject = async (
   res: Response
 ): Promise<void> => {
   const { name, description, startDate, endDate } = req.body;
+
   try {
+    const parsedStartDate = startDate ? new Date(startDate) : null;
+    const parsedEndDate = endDate ? new Date(endDate) : null;
+
     const newProject = await prisma.project.create({
       data: {
         name,
         description,
-        startDate,
-        endDate,
+        startDate: parsedStartDate,
+        endDate: parsedEndDate,
       },
     });
     res.status(201).json(newProject);
   } catch (error: any) {
+    console.error("Project creation error:", error);
     res
       .status(500)
       .json({ message: `Error creating a project: ${error.message}` });
