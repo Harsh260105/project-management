@@ -1,6 +1,11 @@
 import Modal from "@/components/Modal";
-import { Priority, Status, useCreateTaskMutation } from "@/state/api";
-import React, { useState } from "react";
+import {
+  Priority,
+  Status,
+  useCreateTaskMutation,
+  useGetAuthUserQuery,
+} from "@/state/api";
+import React, { useState, useEffect } from "react";
 import { formatISO } from "date-fns";
 
 type Props = {
@@ -11,6 +16,8 @@ type Props = {
 
 const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const [createTask, { isLoading }] = useCreateTaskMutation();
+  const { data: currentUser } = useGetAuthUserQuery({});
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<Status>(Status.ToDo);
@@ -22,32 +29,48 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const [assignedUserId, setAssignedUserId] = useState("");
   const [projectId, setProjectId] = useState("");
 
+  // Set author user ID to current user when available
+  useEffect(() => {
+    if (currentUser?.userDetails?.userId) {
+      setAuthorUserId(currentUser.userDetails.userId.toString());
+    }
+  }, [currentUser]);
   const handleSubmit = async () => {
     if (!title || !authorUserId || !(id !== null || projectId)) return;
 
-    const formattedStartDate = formatISO(new Date(startDate), {
-      representation: "complete",
-    });
-    const formattedDueDate = formatISO(new Date(dueDate), {
-      representation: "complete",
-    });
+    try {
+      // Only format dates if they have been provided
+      const formattedStartDate = startDate
+        ? formatISO(new Date(startDate))
+        : undefined;
 
-    await createTask({
-      title,
-      description,
-      status,
-      priority,
-      tags,
-      startDate: formattedStartDate,
-      dueDate: formattedDueDate,
-      authorUserId: parseInt(authorUserId),
-      assignedUserId: parseInt(assignedUserId),
-      projectId: id !== null ? Number(id) : Number(projectId),
-    });
+      const formattedDueDate = dueDate
+        ? formatISO(new Date(dueDate))
+        : undefined;
+
+      await createTask({
+        title,
+        description,
+        status,
+        priority,
+        tags,
+        startDate: formattedStartDate,
+        dueDate: formattedDueDate,
+        authorUserId: parseInt(authorUserId),
+        assignedUserId: assignedUserId ? parseInt(assignedUserId) : undefined,
+        projectId: id !== null ? Number(id) : Number(projectId),
+      });
+
+      // Close modal and reset form on success
+      onClose();
+      alert("Task created successfully!");
+    } catch (error) {
+      console.error("Error creating task:", error);
+      alert("Failed to create task. Please try again.");
+    }
   };
-
   const isFormValid = () => {
-    return title && authorUserId && !(id !== null || projectId);
+    return title && authorUserId && (id !== null || projectId);
   };
 
   const selectStyles =
@@ -114,7 +137,6 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
           value={tags}
           onChange={(e) => setTags(e.target.value)}
         />
-
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-2">
           <input
             type="date"
@@ -128,18 +150,19 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
           />
-        </div>
+        </div>{" "}
         <input
           type="text"
           className={inputStyles}
-          placeholder="Author User ID"
+          placeholder="Author User ID (auto-filled)"
           value={authorUserId}
-          onChange={(e) => setAuthorUserId(e.target.value)}
+          readOnly
+          disabled
         />
         <input
           type="text"
           className={inputStyles}
-          placeholder="Assigned User ID"
+          placeholder="Assigned User ID (optional)"
           value={assignedUserId}
           onChange={(e) => setAssignedUserId(e.target.value)}
         />
