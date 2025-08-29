@@ -9,18 +9,6 @@ import React, { useMemo, useState } from "react";
 
 type TaskTypeItems = "task" | "milestone" | "project";
 
-interface GanttTask {
-  start: Date;
-  end: Date;
-  name: string;
-  id: string;
-  type: TaskTypeItems;
-  progress: number;
-  isDisabled: boolean;
-  project?: string;
-  dependencies?: string[];
-}
-
 const Timeline = () => {
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
   const { data: projects, isLoading, isError } = useGetProjectsQuery();
@@ -30,29 +18,36 @@ const Timeline = () => {
     locale: "en-US",
   });
 
-  const ganttTasks = useMemo<GanttTask[]>(() => {
-    if (!projects?.length) return [];
+  const ganttTasks = useMemo(() => {
+    if (!projects) return [];
 
-    const validTasks: GanttTask[] = [];
-    const defaultDate = new Date();
-
-    const tasks = projects
+    const validProjects = projects
       .map((project) => {
         try {
-          if (!project) return undefined;
+          if (!project) {
+            console.warn("Encountered undefined project");
+            return undefined;
+          }
 
+          // Create a default date if needed (today)
+          const defaultDate = new Date();
+
+          // Ensure we have valid dates with defensive checks
           let startDate: Date;
           try {
             startDate = project.startDate
               ? new Date(project.startDate)
               : defaultDate;
-            if (isNaN(startDate.getTime())) {
+            if (!startDate || isNaN(startDate.getTime())) {
               console.warn(
                 `Invalid start date for project ${project.id}, using default`,
               );
               startDate = defaultDate;
             }
-          } catch {
+          } catch (e) {
+            console.warn(
+              `Error parsing start date for project ${project.id}, using default`,
+            );
             startDate = defaultDate;
           }
 
@@ -60,15 +55,32 @@ const Timeline = () => {
           try {
             endDate = project.endDate
               ? new Date(project.endDate)
-              : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 1 week after start
-            if (isNaN(endDate.getTime())) {
+              : new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days after start
+            if (!endDate || isNaN(endDate.getTime())) {
               console.warn(
                 `Invalid end date for project ${project.id}, using default`,
               );
-              endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+              endDate = new Date(
+                startDate.getTime() + 30 * 24 * 60 * 60 * 1000,
+              );
             }
-          } catch {
-            endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+          } catch (e) {
+            console.warn(
+              `Error parsing end date for project ${project.id}, using default`,
+            );
+            endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+          }
+
+          // Final validation check
+          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            console.warn(
+              `Invalid dates for project ${project.id} after all attempts:`,
+              {
+                startDate: project.startDate,
+                endDate: project.endDate,
+              },
+            );
+            return undefined;
           }
 
           return {
@@ -76,20 +88,21 @@ const Timeline = () => {
             end: endDate,
             name: project.name || "Untitled Project",
             id: `Project-${project.id}`,
-            type: "task" as TaskTypeItems, // Changed from "project" to "task"
+            type: "project" as TaskTypeItems,
             progress: 50,
             isDisabled: false,
           };
         } catch (error) {
-          console.error(`Error processing project ${project?.id}:`, error);
+          console.error(`Error processing project ${project.id}:`, error);
           return undefined;
         }
       })
-      .filter((task): task is NonNullable<typeof task> => task !== undefined);
+      .filter(
+        (project): project is NonNullable<typeof project> =>
+          project !== undefined,
+      );
 
-    return tasks;
-
-    return validTasks;
+    return validProjects;
   }, [projects]);
 
   const handleViewModeChange = (
@@ -101,9 +114,40 @@ const Timeline = () => {
     }));
   };
 
-  if (isLoading) return <div>Loading...</div>;
-  if (isError || !projects)
-    return <div>An error occurred while fetching projects</div>;
+  if (isLoading) {
+    return (
+      <div className="flex h-48 items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg font-medium text-gray-600 dark:text-gray-300">
+            Loading projects...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-48 items-center justify-center">
+        <div className="text-center text-red-600 dark:text-red-400">
+          <div className="text-lg font-medium">Error loading projects</div>
+          <div className="mt-2 text-sm">{isError.toString()}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!projects || projects.length === 0) {
+    return (
+      <div className="flex h-48 items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg font-medium text-gray-600 dark:text-gray-300">
+            No projects found
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-full p-8">
@@ -129,13 +173,9 @@ const Timeline = () => {
             {...displayOptions}
             columnWidth={displayOptions.viewMode === ViewMode.Month ? 150 : 100}
             listCellWidth="100px"
-            barBackgroundColor={isDarkMode ? "#101214" : "#aeb8c2"}
-            barProgressColor={isDarkMode ? "#1f2937" : "#aeb8c2"}
-            barProgressSelectedColor={isDarkMode ? "#000" : "#9ba1a6"}
-            rowHeight={50}
-            fontSize="14px"
-            headerHeight={50}
-            rtl={false}
+            projectBackgroundColor={isDarkMode ? "#101214" : "#1f2937"}
+            projectProgressColor={isDarkMode ? "#1f2937" : "#aeb8c2"}
+            projectProgressSelectedColor={isDarkMode ? "#000" : "#9ba1a6"}
           />
         </div>
       </div>

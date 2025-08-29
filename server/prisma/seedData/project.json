@@ -18,7 +18,7 @@
     "name": "Catalyst",
     "description": "A project to boost renewable energy use.",
     "startDate": "2025-03-05T00:00:00Z",
-    "endDate": "2026-03-20T00:00:00Z"
+    "endDate": "2026-03-05T00:00:00Z"
   },
   {
     "id": 4,
@@ -67,6 +67,6 @@
     "name": "Juliet",
     "description": "Initiative to enhance cyber-security measures.",
     "startDate": "2025-07-01T00:00:00Z",
-    "endDate": "2026-03-05T00:00:00Z"
+    "endDate": "2026-02-01T00:00:00Z"
   }
 ]
