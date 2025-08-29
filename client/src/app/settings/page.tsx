@@ -11,7 +11,7 @@ const Settings = () => {
 
   // Find user's team if available
   const userTeam = teams?.find(
-    (team) => team.teamId === currentUser?.userDetails?.teamId,
+    (team) => team.teamId === currentUser?.teamId,
   );
 
   const labelStyles = "block text-sm font-medium dark:text-white";
