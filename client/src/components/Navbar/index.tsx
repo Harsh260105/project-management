@@ -14,7 +14,7 @@ const Navbar = () => {
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
 
   const { user: currentUser, logout } = useAuth();
-
+  
   if (!currentUser) return null;
   
   const currentUserDetails = currentUser;

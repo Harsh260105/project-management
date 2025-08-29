@@ -1,14 +1,22 @@
+// HARD-CODE OVERRIDES (fill these to bypass env vars quickly)
+// Paste your actual values below. Leave as empty strings to fall back to env vars.
+const HARDCODED = {
+  apiBaseUrl: "https://pb325xwwp9.execute-api.us-east-1.amazonaws.com/prod/",
+  cognitoUserPoolId: "us-east-1_w6nHJlnzQ",
+  cognitoUserPoolClientId: "76jti2k5n99ntja5imfea26466",
+};
+
 export const environment = {
   isProduction: process.env.NODE_ENV === 'production',
   isDevelopment: process.env.NODE_ENV === 'development',
   
   // API Configuration
-  apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001',
+  apiBaseUrl: HARDCODED.apiBaseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001',
   
   // Cognito Configuration
   cognito: {
-    userPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || '',
-    userPoolClientId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID || '',
+    userPoolId: HARDCODED.cognitoUserPoolId || process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || '',
+    userPoolClientId: HARDCODED.cognitoUserPoolClientId || process.env.NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID || '',
   },
   
   // Feature Flags
