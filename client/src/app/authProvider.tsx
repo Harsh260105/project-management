@@ -1,14 +1,24 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Authenticator } from "@aws-amplify/ui-react";
 import { Amplify } from "aws-amplify";
+import { fetchAuthSession, getCurrentUser } from "aws-amplify/auth";
+import { UserService } from "@/services/userService";
+import { environment, validateEnvironment } from "@/config/environment";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import "@aws-amplify/ui-react/styles.css";
+
+// Validate environment variables before configuring Amplify
+try {
+  validateEnvironment();
+} catch (error) {
+  console.error('Environment validation failed:', error);
+}
 
 Amplify.configure({
   Auth: {
     Cognito: {
-      userPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || "",
-      userPoolClientId:
-        process.env.NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID || "",
+      userPoolId: environment.cognito.userPoolId,
+      userPoolClientId: environment.cognito.userPoolClientId,
     },
   },
 });
@@ -43,6 +53,41 @@ const formFields = {
 };
 
 const AuthProvider = ({ children }: any) => {
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const session = await fetchAuthSession();
+        if (session.tokens) {
+          setIsAuthenticated(true);
+          
+          // Ensure user exists in database
+          try {
+            await UserService.syncUserData();
+          } catch (syncError) {
+            console.error('Error syncing user data:', syncError);
+          }
+        }
+      } catch (error) {
+        console.log('No active session');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen w-full flex-col justify-center items-center">
+        <LoadingSpinner size="lg" text="Initializing..." />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen w-full flex-col justify-center">
       <Authenticator formFields={formFields}>

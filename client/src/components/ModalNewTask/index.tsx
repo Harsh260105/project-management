@@ -3,8 +3,8 @@ import {
   Priority,
   Status,
   useCreateTaskMutation,
-  useGetAuthUserQuery,
 } from "@/state/api";
+import { useAuth } from "@/hooks/useAuth";
 import React, { useState, useEffect } from "react";
 import { formatISO } from "date-fns";
 
@@ -17,10 +17,10 @@ type Props = {
 const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const [createTask, { isLoading }] = useCreateTaskMutation();
   const {
-    data: currentUser,
+    user: currentUser,
     isLoading: isUserLoading,
     error: userError,
-  } = useGetAuthUserQuery({});
+  } = useAuth();
 
   console.log("Current user data:", currentUser);
 
@@ -37,12 +37,12 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
 
   // Set author user ID to current user when available
   useEffect(() => {
-    if (currentUser?.userDetails?.userId) {
+    if (currentUser?.userId) {
       console.log(
         "Setting author user ID to:",
-        currentUser.userDetails.userId.toString(),
+        currentUser.userId.toString(),
       );
-      setAuthorUserId(currentUser.userDetails.userId.toString());
+      setAuthorUserId(currentUser.userId.toString());
     }
   }, [currentUser]);
 

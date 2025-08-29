@@ -2,12 +2,11 @@
 
 import Header from "@/components/Header";
 import React from "react";
-import { useGetAuthUserQuery, useGetTeamsQuery } from "@/state/api";
+import { useGetTeamsQuery } from "@/state/api";
+import { useAuth } from "@/hooks/useAuth";
 
 const Settings = () => {
-  const { data: currentUser, isLoading: isLoadingUser } = useGetAuthUserQuery(
-    {},
-  );
+  const { user: currentUser, isLoading: isLoadingUser } = useAuth();
   const { data: teams, isLoading: isLoadingTeams } = useGetTeamsQuery();
 
   // Find user's team if available
@@ -23,15 +22,15 @@ const Settings = () => {
       <Header name="Settings" />
       {isLoadingUser || isLoadingTeams ? (
         <div className="py-4 text-center">Loading user settings...</div>
-      ) : currentUser?.userDetails ? (
+      ) : currentUser ? (
         <div className="space-y-4">
           <div>
             <label className={labelStyles}>Username</label>
-            <div className={textStyles}>{currentUser.userDetails.username}</div>
+            <div className={textStyles}>{currentUser.username}</div>
           </div>
           <div>
             <label className={labelStyles}>Email</label>
-            <div className={textStyles}>{currentUser.userDetails.email}</div>
+            <div className={textStyles}>{currentUser.email}</div>
           </div>
           <div>
             <label className={labelStyles}>Team</label>
@@ -42,7 +41,7 @@ const Settings = () => {
           <div>
             <label className={labelStyles}>Role</label>
             <div className={textStyles}>
-              {currentUser.userDetails.teamId ? "Team Member" : "User"}
+              {currentUser.teamId ? "Team Member" : "User"}
             </div>
           </div>
         </div>
