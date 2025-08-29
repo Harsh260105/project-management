@@ -25,17 +25,36 @@ const Timeline = ({ id, setIsModalNewTaskOpen }: Props) => {
   });
 
   const ganttTasks = useMemo(() => {
-    return (
-      tasks?.map((task) => ({
-        start: new Date(task.startDate as string),
-        end: new Date(task.dueDate as string),
-        name: task.title,
-        id: `Task-${task.id}`,
-        type: "task" as TaskTypeItems,
-        progress: task.points ? (task.points / 10) * 100 : 0,
-        isDisabled: false,
-      })) || []
-    );
+    if (!tasks) return [];
+
+    const validTasks = tasks.map((task) => {
+      try {
+        // Ensure we have valid dates
+        const startDate = task.startDate ? new Date(task.startDate) : new Date();
+        const dueDate = task.dueDate ? new Date(task.dueDate) : new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+
+        // Validate dates
+        if (!startDate || !dueDate || isNaN(startDate.getTime()) || isNaN(dueDate.getTime())) {
+          console.warn(`Invalid dates for task ${task.id}:`, { startDate: task.startDate, dueDate: task.dueDate });
+          return undefined;
+        }
+
+        return {
+          start: startDate,
+          end: dueDate,
+          name: task.title || 'Untitled Task',
+          id: `Task-${task.id}`,
+          type: "task" as TaskTypeItems,
+          progress: task.points ? (task.points / 10) * 100 : 0,
+          isDisabled: false,
+        };
+      } catch (error) {
+        console.error(`Error processing task ${task.id}:`, error);
+        return undefined;
+      }
+    }).filter((task): task is NonNullable<typeof task> => task !== undefined);
+
+    return validTasks;
   }, [tasks]);
 
   const handleViewModeChange = (
@@ -47,8 +66,42 @@ const Timeline = ({ id, setIsModalNewTaskOpen }: Props) => {
     }));
   };
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error || !tasks) return <div>An error occurred while fetching tasks</div>;
+  if (isLoading) {
+    return (
+      <div className="flex h-48 items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg font-medium text-gray-600 dark:text-gray-300">Loading tasks...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-48 items-center justify-center">
+        <div className="text-center text-red-600 dark:text-red-400">
+          <div className="text-lg font-medium">Error loading tasks</div>
+          <div className="mt-2 text-sm">{error.toString()}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!tasks || tasks.length === 0) {
+    return (
+      <div className="flex h-48 items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg font-medium text-gray-600 dark:text-gray-300">No tasks found</div>
+          <button
+            className="mt-4 rounded bg-blue-primary px-4 py-2 text-white hover:bg-blue-600"
+            onClick={() => setIsModalNewTaskOpen(true)}
+          >
+            Create First Task
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 xl:px-6">
