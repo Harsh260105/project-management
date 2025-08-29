@@ -9,6 +9,18 @@ import React, { useMemo, useState } from "react";
 
 type TaskTypeItems = "task" | "milestone" | "project";
 
+interface GanttTask {
+  start: Date;
+  end: Date;
+  name: string;
+  id: string;
+  type: TaskTypeItems;
+  progress: number;
+  isDisabled: boolean;
+  project?: string;
+  dependencies?: string[];
+}
+
 const Timeline = () => {
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
   const { data: projects, isLoading, isError } = useGetProjectsQuery();
@@ -18,44 +30,67 @@ const Timeline = () => {
     locale: "en-US",
   });
 
-  const ganttTasks = useMemo(() => {
-    if (!projects || projects.length === 0) return [];
+  const ganttTasks = useMemo<GanttTask[]>(() => {
+    // Early return if no projects
+    if (!projects?.length) return [];
 
-    return projects
-      .filter((project) => {
-        // Filter out projects with invalid dates
-        if (!project.startDate || !project.endDate) {
-          console.warn(`Project ${project.id} has missing dates`);
-          return false;
-        }
+    const validTasks: GanttTask[] = [];
 
-        try {
-          const startDate = new Date(project.startDate);
-          const endDate = new Date(project.endDate);
+    // Create a dummy task to initialize the chart (prevents getTime undefined error)
+    const now = new Date();
+    validTasks.push({
+      start: now,
+      end: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      name: "Loading Projects...",
+      id: "dummy",
+      type: "task",
+      progress: 0,
+      isDisabled: true,
+    });
 
-          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-            console.warn(`Project ${project.id} has invalid dates`);
-            return false;
-          }
-
-          return true;
-        } catch (error) {
-          console.error(
-            `Error processing dates for project ${project.id}:`,
-            error,
+    // Process each project
+    for (const project of projects) {
+      try {
+        // Skip if missing required data
+        if (!project?.startDate || !project?.endDate || !project?.name) {
+          console.warn(
+            `Skipping project ${project?.id}: Missing required data`,
           );
-          return false;
+          continue;
         }
-      })
-      .map((project) => ({
-        start: new Date(project.startDate as string),
-        end: new Date(project.endDate as string),
-        name: project.name || "Untitled Project",
-        id: `Project-${project.id}`,
-        type: "project" as TaskTypeItems,
-        progress: 50,
-        isDisabled: false,
-      }));
+
+        // Create dates with proper validation
+        const startDate = new Date(project.startDate);
+        const endDate = new Date(project.endDate);
+
+        // Validate dates
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          console.warn(`Skipping project ${project.id}: Invalid dates`);
+          continue;
+        }
+
+        // Add valid project
+        validTasks.push({
+          start: startDate,
+          end: endDate,
+          name: project.name,
+          id: `Project-${project.id}`,
+          type: "project",
+          progress: 50,
+          isDisabled: false,
+        });
+      } catch (error) {
+        console.error(`Error processing project ${project?.id}:`, error);
+        continue;
+      }
+    }
+
+    // Remove dummy task if we have valid projects
+    if (validTasks.length > 1) {
+      validTasks.shift(); // Remove the dummy task
+    }
+
+    return validTasks;
   }, [projects]);
 
   const handleViewModeChange = (
