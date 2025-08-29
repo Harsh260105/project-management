@@ -15,7 +15,7 @@ const Navbar = () => {
 
   const { user: currentUser, logout } = useAuth();
   
-  if (!currentUser) return null;
+  // if (!currentUser) return null;
   
   const currentUserDetails = currentUser;
 

@@ -38,7 +38,7 @@ const Sidebar = () => {
   );
 
   const { user: currentUser, logout } = useAuth();
-  if (!currentUser) return null;
+  // if (!currentUser) return null;
   const currentUserDetails = currentUser;
 
   const sidebarClassNames = `fixed flex flex-col h-[100%] justify-between shadow-xl
