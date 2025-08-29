@@ -30,25 +30,58 @@ const Timeline = ({ id, setIsModalNewTaskOpen }: Props) => {
     const validTasks = tasks
       .map((task) => {
         try {
-          // Ensure we have valid dates
-          const startDate = task.startDate
-            ? new Date(task.startDate)
-            : new Date();
-          const dueDate = task.dueDate
-            ? new Date(task.dueDate)
-            : new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+          if (!task) {
+            console.warn("Encountered undefined task");
+            return undefined;
+          }
 
-          // Validate dates
-          if (
-            !startDate ||
-            !dueDate ||
-            isNaN(startDate.getTime()) ||
-            isNaN(dueDate.getTime())
-          ) {
-            console.warn(`Invalid dates for task ${task.id}:`, {
-              startDate: task.startDate,
-              dueDate: task.dueDate,
-            });
+          // Create a default date if needed (today)
+          const defaultDate = new Date();
+
+          // Ensure we have valid dates with defensive checks
+          let startDate: Date;
+          try {
+            startDate = task.startDate ? new Date(task.startDate) : defaultDate;
+            if (!startDate || isNaN(startDate.getTime())) {
+              console.warn(
+                `Invalid start date for task ${task.id}, using default`,
+              );
+              startDate = defaultDate;
+            }
+          } catch (e) {
+            console.warn(
+              `Error parsing start date for task ${task.id}, using default`,
+            );
+            startDate = defaultDate;
+          }
+
+          let dueDate: Date;
+          try {
+            dueDate = task.dueDate
+              ? new Date(task.dueDate)
+              : new Date(startDate.getTime() + 24 * 60 * 60 * 1000); // 1 day after start
+            if (!dueDate || isNaN(dueDate.getTime())) {
+              console.warn(
+                `Invalid due date for task ${task.id}, using default`,
+              );
+              dueDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+            }
+          } catch (e) {
+            console.warn(
+              `Error parsing due date for task ${task.id}, using default`,
+            );
+            dueDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+          }
+
+          // Final validation check
+          if (isNaN(startDate.getTime()) || isNaN(dueDate.getTime())) {
+            console.warn(
+              `Invalid dates for task ${task.id} after all attempts:`,
+              {
+                startDate: task.startDate,
+                dueDate: task.dueDate,
+              },
+            );
             return undefined;
           }
 
