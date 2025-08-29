@@ -111,17 +111,14 @@ const AuthProvider = ({ children }: any) => {
 
   return (
     <div className="flex min-h-screen w-full flex-col justify-center">
-      <Authenticator formFields={formFields}>
-        {({ user }: any) =>
-          user ? (
-            <div>{children}</div>
-          ) : (
-            <div>
-              <h1>Please sign in below:</h1>
-            </div>
-          )
-        }
-      </Authenticator>
+      <Authenticator formFields={formFields}>{() => <></>}</Authenticator>
+      {isAuthenticated ? (
+        <div>{children}</div>
+      ) : (
+        <div className="flex items-center justify-center py-10">
+          <h1>Please sign in below:</h1>
+        </div>
+      )}
     </div>
   );
 };
