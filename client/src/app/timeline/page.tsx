@@ -31,64 +31,63 @@ const Timeline = () => {
   });
 
   const ganttTasks = useMemo<GanttTask[]>(() => {
-    // Early return if no projects
     if (!projects?.length) return [];
 
     const validTasks: GanttTask[] = [];
+    const defaultDate = new Date();
 
-    // Create a dummy task to initialize the chart (prevents getTime undefined error)
-    const now = new Date();
-    validTasks.push({
-      start: now,
-      end: new Date(now.getTime() + 24 * 60 * 60 * 1000),
-      name: "Loading Projects...",
-      id: "dummy",
-      type: "task",
-      progress: 0,
-      isDisabled: true,
-    });
+    const tasks = projects
+      .map((project) => {
+        try {
+          if (!project) return undefined;
 
-    // Process each project
-    for (const project of projects) {
-      try {
-        // Skip if missing required data
-        if (!project?.startDate || !project?.endDate || !project?.name) {
-          console.warn(
-            `Skipping project ${project?.id}: Missing required data`,
-          );
-          continue;
+          let startDate: Date;
+          try {
+            startDate = project.startDate
+              ? new Date(project.startDate)
+              : defaultDate;
+            if (isNaN(startDate.getTime())) {
+              console.warn(
+                `Invalid start date for project ${project.id}, using default`,
+              );
+              startDate = defaultDate;
+            }
+          } catch {
+            startDate = defaultDate;
+          }
+
+          let endDate: Date;
+          try {
+            endDate = project.endDate
+              ? new Date(project.endDate)
+              : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 1 week after start
+            if (isNaN(endDate.getTime())) {
+              console.warn(
+                `Invalid end date for project ${project.id}, using default`,
+              );
+              endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+            }
+          } catch {
+            endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+          }
+
+          return {
+            start: startDate,
+            end: endDate,
+            name: project.name || "Untitled Project",
+            id: `Project-${project.id}`,
+            type: "task" as TaskTypeItems, // Changed from "project" to "task"
+            progress: 50,
+            isDisabled: false,
+          };
+        } catch (error) {
+          console.error(`Error processing project ${project?.id}:`, error);
+          return undefined;
         }
+      })
+      .filter((task): task is NonNullable<typeof task> => task !== undefined);
 
-        // Create dates with proper validation
-        const startDate = new Date(project.startDate);
-        const endDate = new Date(project.endDate);
-
-        // Validate dates
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-          console.warn(`Skipping project ${project.id}: Invalid dates`);
-          continue;
-        }
-
-        // Add valid project
-        validTasks.push({
-          start: startDate,
-          end: endDate,
-          name: project.name,
-          id: `Project-${project.id}`,
-          type: "project",
-          progress: 50,
-          isDisabled: false,
-        });
-      } catch (error) {
-        console.error(`Error processing project ${project?.id}:`, error);
-        continue;
-      }
-    }
-
-    // Remove dummy task if we have valid projects
-    if (validTasks.length > 1) {
-      validTasks.shift(); // Remove the dummy task
-    }
+    return tasks;
 
     return validTasks;
   }, [projects]);
@@ -130,9 +129,13 @@ const Timeline = () => {
             {...displayOptions}
             columnWidth={displayOptions.viewMode === ViewMode.Month ? 150 : 100}
             listCellWidth="100px"
-            projectBackgroundColor={isDarkMode ? "#101214" : "#1f2937"}
-            projectProgressColor={isDarkMode ? "#1f2937" : "#aeb8c2"}
-            projectProgressSelectedColor={isDarkMode ? "#000" : "#9ba1a6"}
+            barBackgroundColor={isDarkMode ? "#101214" : "#aeb8c2"}
+            barProgressColor={isDarkMode ? "#1f2937" : "#aeb8c2"}
+            barProgressSelectedColor={isDarkMode ? "#000" : "#9ba1a6"}
+            rowHeight={50}
+            fontSize="14px"
+            headerHeight={50}
+            rtl={false}
           />
         </div>
       </div>
