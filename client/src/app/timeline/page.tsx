@@ -19,17 +19,43 @@ const Timeline = () => {
   });
 
   const ganttTasks = useMemo(() => {
-    return (
-      projects?.map((project) => ({
+    if (!projects || projects.length === 0) return [];
+
+    return projects
+      .filter((project) => {
+        // Filter out projects with invalid dates
+        if (!project.startDate || !project.endDate) {
+          console.warn(`Project ${project.id} has missing dates`);
+          return false;
+        }
+
+        try {
+          const startDate = new Date(project.startDate);
+          const endDate = new Date(project.endDate);
+
+          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            console.warn(`Project ${project.id} has invalid dates`);
+            return false;
+          }
+
+          return true;
+        } catch (error) {
+          console.error(
+            `Error processing dates for project ${project.id}:`,
+            error,
+          );
+          return false;
+        }
+      })
+      .map((project) => ({
         start: new Date(project.startDate as string),
         end: new Date(project.endDate as string),
-        name: project.name,
+        name: project.name || "Untitled Project",
         id: `Project-${project.id}`,
         type: "project" as TaskTypeItems,
         progress: 50,
         isDisabled: false,
-      })) || []
-    );
+      }));
   }, [projects]);
 
   const handleViewModeChange = (
