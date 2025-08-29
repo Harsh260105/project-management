@@ -65,8 +65,8 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
       }
 
       // Make sure author ID is set from currentUser
-      if (currentUser?.userDetails?.userId) {
-        setAuthorUserId(currentUser.userDetails.userId.toString());
+      if (currentUser?.userId) {
+        setAuthorUserId(currentUser.userId.toString());
       }
     } else {
       // Reset everything when closing
@@ -120,7 +120,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
       try {
         // If we have a current user ID, use that; otherwise use the manually entered one
         const authorIdToUse =
-          authorUserId || currentUser?.userDetails?.userId?.toString() || "";
+          authorUserId || currentUser?.userId?.toString() || "";
 
         if (!authorIdToUse) {
           throw new Error("No Author User ID available");
@@ -225,7 +225,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
               ? "Loading..."
               : userError
                 ? "Error"
-                : currentUser?.userDetails?.userId
+                : currentUser?.userId
                   ? "Loaded"
                   : "Not Found"}
           </p>
@@ -240,8 +240,8 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
               }
             </p>
           )}
-          {currentUser?.userDetails?.userId && (
-            <p>User ID: {currentUser.userDetails.userId}</p>
+          {currentUser?.userId && (
+            <p>User ID: {currentUser.userId}</p>
           )}
         </div>
         <input
