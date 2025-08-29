@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect } from "react";
 import { Authenticator } from "@aws-amplify/ui-react";
 import { Amplify } from "aws-amplify";
@@ -14,14 +15,23 @@ try {
   console.error('Environment validation failed:', error);
 }
 
-Amplify.configure({
-  Auth: {
-    Cognito: {
-      userPoolId: environment.cognito.userPoolId,
-      userPoolClientId: environment.cognito.userPoolClientId,
+// Configure Amplify only when required env values exist
+const hasAmplifyEnv = Boolean(
+  environment.cognito.userPoolId && environment.cognito.userPoolClientId
+);
+
+if (hasAmplifyEnv) {
+  Amplify.configure({
+    Auth: {
+      Cognito: {
+        userPoolId: environment.cognito.userPoolId,
+        userPoolClientId: environment.cognito.userPoolClientId,
+      },
     },
-  },
-});
+  });
+} else {
+  console.error('Amplify not configured: missing Cognito env vars');
+}
 
 const formFields = {
   signUp: {
@@ -79,6 +89,17 @@ const AuthProvider = ({ children }: any) => {
 
     checkAuthStatus();
   }, []);
+
+  if (!hasAmplifyEnv) {
+    return (
+      <div className="flex min-h-screen w-full flex-col items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 font-medium">Missing required environment variables.</p>
+          <p className="text-sm text-gray-600 mt-2">Please set NEXT_PUBLIC_COGNITO_USER_POOL_ID and NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

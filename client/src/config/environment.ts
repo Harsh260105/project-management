@@ -34,19 +34,20 @@ export const environment = {
 
 // Validation function to ensure required environment variables are set
 export const validateEnvironment = (): void => {
-  const requiredVars = [
-    'NEXT_PUBLIC_COGNITO_USER_POOL_ID',
-    'NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID',
-    'NEXT_PUBLIC_API_BASE_URL',
-  ];
+  const missingKeys: string[] = [];
+  if (!environment.cognito.userPoolId) {
+    missingKeys.push('NEXT_PUBLIC_COGNITO_USER_POOL_ID');
+  }
+  if (!environment.cognito.userPoolClientId) {
+    missingKeys.push('NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID');
+  }
+  if (!environment.apiBaseUrl) {
+    missingKeys.push('NEXT_PUBLIC_API_BASE_URL');
+  }
 
-  const missingVars = requiredVars.filter(
-    (varName) => !process.env[varName]
-  );
-
-  if (missingVars.length > 0) {
+  if (missingKeys.length > 0) {
     throw new Error(
-      `Missing required environment variables: ${missingVars.join(', ')}`
+      `Missing required environment variables: ${missingKeys.join(', ')}`
     );
   }
 };
