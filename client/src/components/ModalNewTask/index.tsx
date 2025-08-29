@@ -218,6 +218,19 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         }}
       >
         {/* User ID status indicator for debugging */}
+        {(() => {
+          if (!userError) return null;
+          let errorText: string = "Unknown error";
+          const anyErr: any = userError as any;
+          if (typeof anyErr?.message === "string") {
+            errorText = anyErr.message;
+          } else if ("status" in anyErr) {
+            errorText = `${anyErr.status}: ${JSON.stringify(anyErr.data)}`;
+          }
+          return (
+            <p className="text-red-500">Error: {errorText}</p>
+          );
+        })()}
         <div className="mb-2 rounded bg-gray-100 p-2 text-xs dark:bg-dark-secondary">
           <p>
             User ID Status:{" "}
@@ -229,17 +242,6 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
                   ? "Loaded"
                   : "Not Found"}
           </p>
-          {userError && (
-            <p className="text-red-500">
-              Error: {
-                'message' in userError 
-                  ? userError.message 
-                  : 'status' in userError 
-                    ? `${userError.status}: ${JSON.stringify(userError.data)}` 
-                    : "Unknown error"
-              }
-            </p>
-          )}
           {currentUser?.userId && (
             <p>User ID: {currentUser.userId}</p>
           )}
@@ -335,13 +337,14 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
           />
           {userError && (
             <p className="mt-1 text-sm text-red-500">
-              Error loading user: {
-                'message' in userError 
-                  ? userError.message 
-                  : 'status' in userError 
-                    ? `${userError.status}: ${JSON.stringify(userError.data)}` 
-                    : "Unknown error"
-              }. Please enter your user ID manually.
+              Error loading user: {(() => {
+                const anyErr: any = userError as any;
+                if (typeof anyErr?.message === "string") return anyErr.message;
+                if (typeof anyErr?.status !== "undefined") {
+                  return `${anyErr.status}: ${JSON.stringify(anyErr.data)}`;
+                }
+                return "Unknown error";
+              })()}. Please enter your user ID manually.
             </p>
           )}
         </div>{" "}
