@@ -91,7 +91,6 @@ export const api = createApi({
   tagTypes: ["Projects", "Tasks", "Users", "Teams"],
 
   endpoints: (build) => ({
-    
     getAuthUser: build.query({
       queryFn: async (_, _queryApi, _extraoptions, fetchWithBQ) => {
         try {
@@ -103,40 +102,48 @@ export const api = createApi({
 
           // Use fetchWithBQ to avoid circular dependencies
           const userDetailsResponse = await fetchWithBQ(`users/${userSub}`);
-          
+
           if (userDetailsResponse.error) {
             // If user doesn't exist, create them
             const createResponse = await fetchWithBQ({
-              url: 'users',
-              method: 'POST',
+              url: "users",
+              method: "POST",
               body: {
                 username: user.username,
                 cognitoId: userSub,
-                email: user.signInDetails?.loginId || user.username || '',
-                profilePictureUrl: 'i1.jpg',
+                email: user.signInDetails?.loginId || user.username || "",
+                profilePictureUrl: "i1.jpg",
                 teamId: 1,
               },
             });
-            
+
             if (createResponse.error) {
-              throw new Error('Failed to create user in database');
+              throw new Error("Failed to create user in database");
             }
-            
-            return { data: { user, userSub, userDetails: (createResponse.data as any).newUser } };
+
+            return {
+              data: {
+                user,
+                userSub,
+                userDetails: (createResponse.data as any).newUser,
+              },
+            };
           }
 
-          return { data: { user, userSub, userDetails: userDetailsResponse.data } };
+          return {
+            data: { user, userSub, userDetails: userDetailsResponse.data },
+          };
         } catch (error: any) {
           return { error: error.message || "Could not fetch user data" };
         }
       },
     }),
-    
+
     getProjects: build.query<Project[], void>({
       query: () => "projects",
       providesTags: ["Projects"],
     }),
-    
+
     createProject: build.mutation<Project, Partial<Project>>({
       query: (project) => ({
         url: "projects",
@@ -145,7 +152,7 @@ export const api = createApi({
       }),
       invalidatesTags: ["Projects"],
     }),
-    
+
     getTasks: build.query<Task[], { projectId: number }>({
       query: ({ projectId }) => `tasks?projectId=${projectId}`,
       providesTags: (result) =>
@@ -153,7 +160,7 @@ export const api = createApi({
           ? result.map(({ id }) => ({ type: "Tasks" as const, id }))
           : [{ type: "Tasks" as const }],
     }),
-    
+
     getTasksByUser: build.query<Task[], number>({
       query: (userId) => `tasks/user/${userId}`,
       providesTags: (result, error, userId) =>
@@ -161,7 +168,7 @@ export const api = createApi({
           ? result.map(({ id }) => ({ type: "Tasks", id }))
           : [{ type: "Tasks", id: userId }],
     }),
-    
+
     createTask: build.mutation<Task, Partial<Task>>({
       query: (task) => ({
         url: "tasks",
@@ -176,13 +183,13 @@ export const api = createApi({
       async onQueryStarted(task, { dispatch, queryFulfilled }) {
         try {
           const { data: newTask } = await queryFulfilled;
-          console.log('Task created successfully:', newTask);
+          console.log("Task created successfully:", newTask);
         } catch (error) {
-          console.error('Error creating task:', error);
+          console.error("Error creating task:", error);
         }
       },
     }),
-    
+
     updateTaskStatus: build.mutation<Task, { taskId: number; status: string }>({
       query: ({ taskId, status }) => ({
         url: `tasks/${taskId}/status`,
@@ -193,17 +200,17 @@ export const api = createApi({
         { type: "Tasks", id: taskId },
       ],
     }),
-    
+
     getUsers: build.query<User[], void>({
       query: () => "users",
       providesTags: ["Users"],
     }),
-    
+
     getTeams: build.query<Team[], void>({
       query: () => "teams",
       providesTags: ["Teams"],
     }),
-    
+
     search: build.query<SearchResults, string>({
       query: (query) => `search?query=${query}`,
     }),

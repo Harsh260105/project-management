@@ -1,9 +1,5 @@
 import Modal from "@/components/Modal";
-import {
-  Priority,
-  Status,
-  useCreateTaskMutation,
-} from "@/state/api";
+import { Priority, Status, useCreateTaskMutation } from "@/state/api";
 import { useAuth } from "@/hooks/useAuth";
 import React, { useState, useEffect } from "react";
 import { formatISO } from "date-fns";
@@ -38,10 +34,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   // Set author user ID to current user when available
   useEffect(() => {
     if (currentUser?.userId) {
-      console.log(
-        "Setting author user ID to:",
-        currentUser.userId.toString(),
-      );
+      console.log("Setting author user ID to:", currentUser.userId.toString());
       setAuthorUserId(currentUser.userId.toString());
     }
   }, [currentUser]);
@@ -166,14 +159,14 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         projectId: finalProjectId,
       }).unwrap();
 
-      console.log('Task creation response:', response);
+      console.log("Task creation response:", response);
 
-      if ('data' in response) {
+      if ("data" in response) {
         onClose();
         alert("Task created successfully!");
       } else {
-        console.error('Task creation failed:', response);
-        alert('Failed to create task. Check console for details.');
+        console.error("Task creation failed:", response);
+        alert("Failed to create task. Check console for details.");
       }
     } catch (error) {
       console.error("Error creating task:", error);
@@ -233,9 +226,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
           } else if ("status" in anyErr) {
             errorText = `${anyErr.status}: ${JSON.stringify(anyErr.data)}`;
           }
-          return (
-            <p className="text-red-500">Error: {errorText}</p>
-          );
+          return <p className="text-red-500">Error: {errorText}</p>;
         })()}
         <div className="mb-2 rounded bg-gray-100 p-2 text-xs dark:bg-dark-secondary">
           <p>
@@ -248,9 +239,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
                   ? "Loaded"
                   : "Not Found"}
           </p>
-          {currentUser?.userId && (
-            <p>User ID: {currentUser.userId}</p>
-          )}
+          {currentUser?.userId && <p>User ID: {currentUser.userId}</p>}
         </div>
         <input
           type="text"
@@ -343,14 +332,16 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
           />
           {userError && (
             <p className="mt-1 text-sm text-red-500">
-              Error loading user: {(() => {
+              Error loading user:{" "}
+              {(() => {
                 const anyErr: any = userError as any;
                 if (typeof anyErr?.message === "string") return anyErr.message;
                 if (typeof anyErr?.status !== "undefined") {
                   return `${anyErr.status}: ${JSON.stringify(anyErr.data)}`;
                 }
                 return "Unknown error";
-              })()}. Please enter your user ID manually.
+              })()}
+              . Please enter your user ID manually.
             </p>
           )}
         </div>{" "}
