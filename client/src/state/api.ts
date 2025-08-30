@@ -168,7 +168,19 @@ export const api = createApi({
         method: "POST",
         body: task,
       }),
-      invalidatesTags: ["Tasks"],
+      invalidatesTags: (result, error, { projectId }) => [
+        { type: "Tasks", id: projectId },
+        { type: "Tasks" },
+      ],
+      // Add onQueryStarted to handle optimistic updates
+      async onQueryStarted(task, { dispatch, queryFulfilled }) {
+        try {
+          const { data: newTask } = await queryFulfilled;
+          console.log('Task created successfully:', newTask);
+        } catch (error) {
+          console.error('Error creating task:', error);
+        }
+      },
     }),
     
     updateTaskStatus: build.mutation<Task, { taskId: number; status: string }>({

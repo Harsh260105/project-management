@@ -153,7 +153,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         }
       }
 
-      await createTask({
+      const response = await createTask({
         title,
         description,
         status,
@@ -164,11 +164,17 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         authorUserId: finalAuthorUserId,
         assignedUserId: finalAssignedUserId,
         projectId: finalProjectId,
-      });
+      }).unwrap();
 
-      // Close modal and reset form on success
-      onClose();
-      alert("Task created successfully!");
+      console.log('Task creation response:', response);
+
+      if ('data' in response) {
+        onClose();
+        alert("Task created successfully!");
+      } else {
+        console.error('Task creation failed:', response);
+        alert('Failed to create task. Check console for details.');
+      }
     } catch (error) {
       console.error("Error creating task:", error);
       alert("Failed to create task. Please try again.");
